@@ -11,6 +11,8 @@ const questionToggleSchema = z.object({
 });
 
 const allowedFileTypes = new Set(["application/pdf", "text/plain"]);
+export const maxUploadSizeMb = Number(process.env.NEXT_PUBLIC_MAX_UPLOAD_MB || 5);
+export const maxUploadSizeBytes = maxUploadSizeMb * 1024 * 1024;
 
 export const createAssignmentFormSchema = z
   .object({
@@ -33,7 +35,10 @@ export const createAssignmentFormSchema = z
         message: "File must be a PDF or TXT document."
       })
       .optional()
-      .refine((value) => !value || value.size <= 5 * 1024 * 1024, "File must be 5MB or smaller.")
+      .refine(
+        (value) => !value || value.size <= maxUploadSizeBytes,
+        `File must be ${maxUploadSizeMb}MB or smaller.`
+      )
       .refine(
         (value) =>
           !value ||

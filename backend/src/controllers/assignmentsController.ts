@@ -4,11 +4,12 @@ import { AssignmentModel } from "../models/Assignment";
 import { calculateTotalQuestions } from "../utils/questionTypes";
 import { parseCreateAssignmentPayload } from "../validation/assignment";
 import { getAssignmentPaperCacheKey } from "../config/redis";
-import { persistUploadedFile } from "../services/fileService";
+import { persistUploadedFile, persistUploadedFileToDisk } from "../services/fileService";
 import { generateQuestionPaperPdf } from "../services/pdfService";
-import type { Queue } from "bullmq";
 import type IORedis from "ioredis";
 import type { QuestionPaper } from "../types/assignment";
+import type { Env } from "../config/env";
+import type { GenerationDispatcher } from "../types/generation";
 
 const getAssignmentOrThrow = async (assignmentId: string) => {
   const assignment = await AssignmentModel.findById(assignmentId);
@@ -26,16 +27,22 @@ const getAssignmentIdFromRequest = (request: Request) =>
   Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
 
 export const createAssignmentsController = ({
-  queue,
+  env,
+  generationDispatcher,
   cacheRedis
 }: {
-  queue: Queue;
+  env: Env;
+  generationDispatcher: GenerationDispatcher;
   cacheRedis: IORedis;
 }) => ({
   createAssignment: async (req: Request, res: Response) => {
     try {
       const payload = parseCreateAssignmentPayload(req.body as Record<string, unknown>);
-      const uploadedFile = req.file ? await persistUploadedFile(req.file) : undefined;
+      const uploadedFile = req.file
+        ? env.BACKEND_RUNTIME_MODE === "server"
+          ? await persistUploadedFileToDisk(req.file)
+          : await persistUploadedFile(req.file)
+        : undefined;
 
       const assignment = await AssignmentModel.create({
         ...payload,
@@ -43,12 +50,12 @@ export const createAssignmentsController = ({
         fileUrl: uploadedFile?.fileUrl,
         filePath: uploadedFile?.filePath,
         sourceText: uploadedFile?.sourceText,
-        status: "pending"
+        status: "pending",
+        jobProgress: 5,
+        jobMessage: "Queued for generation..."
       });
 
-      await queue.add("generate-paper", {
-        assignmentId: String(assignment._id)
-      });
+      await generationDispatcher.enqueueGeneration(String(assignment._id));
 
       return res.status(201).json({
         assignmentId: String(assignment._id)
@@ -134,14 +141,14 @@ export const createAssignmentsController = ({
     const assignment = await getAssignmentOrThrow(assignmentId);
 
     assignment.status = "pending";
+    assignment.jobProgress = 5;
+    assignment.jobMessage = "Queued for generation...";
     assignment.lastError = undefined;
     assignment.set("result", undefined);
     await assignment.save();
     await cacheRedis.del(getAssignmentPaperCacheKey(assignmentId));
 
-    await queue.add("generate-paper", {
-      assignmentId: String(assignment._id)
-    });
+    await generationDispatcher.enqueueGeneration(String(assignment._id));
 
     return res.status(202).json({
       assignmentId: String(assignment._id),

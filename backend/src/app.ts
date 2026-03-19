@@ -4,16 +4,16 @@ import path from "path";
 import { ZodError } from "zod";
 import { createAssignmentsRouter } from "./routes/assignments";
 import type { Env } from "./config/env";
-import type { Queue } from "bullmq";
 import type IORedis from "ioredis";
+import type { GenerationDispatcher } from "./types/generation";
 
 export const createApp = ({
   env,
-  queue,
+  generationDispatcher,
   cacheRedis
 }: {
   env: Env;
-  queue: Queue;
+  generationDispatcher: GenerationDispatcher;
   cacheRedis: IORedis;
 }) => {
   const app = express();
@@ -27,18 +27,23 @@ export const createApp = ({
   );
   app.use(express.json({ limit: "2mb" }));
   app.use(express.urlencoded({ extended: true }));
-  app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
+
+  if (env.BACKEND_RUNTIME_MODE === "server") {
+    app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
+  }
 
   app.get("/api/health", (_req, res) => {
     res.json({
-      status: "ok"
+      status: "ok",
+      runtimeMode: env.BACKEND_RUNTIME_MODE
     });
   });
 
   app.use(
     "/api/assignments",
     createAssignmentsRouter({
-      queue,
+      env,
+      generationDispatcher,
       cacheRedis
     })
   );
@@ -61,7 +66,10 @@ export const createApp = ({
 
       if (error.code === "LIMIT_FILE_SIZE") {
         return res.status(400).json({
-          message: "Uploaded file must be 5MB or smaller."
+          message:
+            env.BACKEND_RUNTIME_MODE === "serverless"
+              ? "Uploaded file must be 4MB or smaller for deployed Vercel requests."
+              : "Uploaded file must be 5MB or smaller."
         });
       }
 

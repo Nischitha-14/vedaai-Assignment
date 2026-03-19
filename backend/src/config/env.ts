@@ -6,7 +6,8 @@ const envSchema = z.object({
   REDIS_URL: z.string().min(1),
   CLAUDE_API_KEY: z.string().default("your_key_here"),
   FRONTEND_URL: z.string().url(),
-  SCHOOL_NAME: z.string().default("VedaAI Public School")
+  SCHOOL_NAME: z.string().default("VedaAI Public School"),
+  BACKEND_RUNTIME_MODE: z.enum(["server", "serverless"]).default("server")
 });
 
 export type Env = z.infer<typeof envSchema> & {

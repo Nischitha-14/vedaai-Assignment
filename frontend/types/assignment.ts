@@ -55,6 +55,8 @@ export interface Assignment {
   totalQuestions: number;
   fileUrl?: string;
   status: AssignmentStatus;
+  jobProgress?: number;
+  jobMessage?: string;
   result?: QuestionPaper;
   lastError?: string;
   createdAt: string;

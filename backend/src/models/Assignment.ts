@@ -181,6 +181,14 @@ const assignmentSchema = new Schema<AssignmentData>(
       enum: ["pending", "processing", "completed", "failed"],
       default: "pending"
     },
+    jobProgress: {
+      type: Number,
+      default: 0
+    },
+    jobMessage: {
+      type: String,
+      default: undefined
+    },
     result: {
       type: questionPaperSchema,
       default: undefined

@@ -18,7 +18,9 @@ import { StatusBadge } from "./status-badge";
 import type { Assignment } from "@/types/assignment";
 import { Button } from "@/components/ui/button";
 
-const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "http://localhost:3001";
+const wsUrl = process.env.NEXT_PUBLIC_WS_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const enableRealtime =
+  (process.env.NEXT_PUBLIC_ENABLE_WS ?? "true") !== "false" && Boolean(wsUrl);
 
 export const ProgressPage = ({ assignmentId }: { assignmentId: string }) => {
   const router = useRouter();
@@ -77,8 +79,11 @@ export const ProgressPage = ({ assignmentId }: { assignmentId: string }) => {
         if (assignmentResponse.status === "failed") {
           updateJobStatus({
             status: "failed",
-            message: assignmentResponse.lastError || "Generation failed.",
-            progress: Math.max(progressRef.current, 20)
+            message:
+              assignmentResponse.jobMessage ||
+              assignmentResponse.lastError ||
+              "Generation failed.",
+            progress: Math.max(progressRef.current, assignmentResponse.jobProgress || 20)
           });
           return;
         }
@@ -86,16 +91,16 @@ export const ProgressPage = ({ assignmentId }: { assignmentId: string }) => {
         if (assignmentResponse.status === "processing") {
           updateJobStatus({
             status: "processing",
-            message: "Generating question paper...",
-            progress: Math.max(progressRef.current, 20)
+            message: assignmentResponse.jobMessage || "Generating question paper...",
+            progress: Math.max(progressRef.current, assignmentResponse.jobProgress || 20)
           });
         }
 
         if (assignmentResponse.status === "pending") {
           updateJobStatus({
             status: "pending",
-            message: "Queued for generation...",
-            progress: Math.max(progressRef.current, 5)
+            message: assignmentResponse.jobMessage || "Queued for generation...",
+            progress: Math.max(progressRef.current, assignmentResponse.jobProgress || 5)
           });
         }
       } catch (error) {
@@ -112,57 +117,61 @@ export const ProgressPage = ({ assignmentId }: { assignmentId: string }) => {
       void syncAssignment();
     }, 4000);
 
-    socket = io(wsUrl, {
-      transports: ["websocket"]
-    });
-
-    socket.on("connect", () => {
-      socket?.emit("assignment:join", assignmentId);
-    });
-
-    socket.on("job:progress", (event) => {
-      if (event.assignmentId !== assignmentId) {
-        return;
-      }
-
-      updateJobStatus({
-        progress: event.progress,
-        message: event.message,
-        status: event.status
+    if (enableRealtime) {
+      socket = io(wsUrl, {
+        transports: ["websocket"]
       });
-    });
 
-    socket.on("job:completed", (event) => {
-      if (event.assignmentId !== assignmentId || redirectedRef.current) {
-        return;
-      }
-
-      redirectedRef.current = true;
-      setPaper(event.result);
-      updateJobStatus({
-        progress: 100,
-        message: "Question paper ready.",
-        status: "completed"
+      socket.on("connect", () => {
+        socket?.emit("assignment:join", assignmentId);
       });
-      router.replace(`/assignments/${assignmentId}/paper`);
-    });
 
-    socket.on("job:failed", (event) => {
-      if (event.assignmentId !== assignmentId) {
-        return;
-      }
+      socket.on("job:progress", (event) => {
+        if (event.assignmentId !== assignmentId) {
+          return;
+        }
 
-      updateJobStatus({
-        status: "failed",
-        message: event.message,
-        progress: Math.max(progressRef.current, 20)
+        updateJobStatus({
+          progress: event.progress,
+          message: event.message,
+          status: event.status
+        });
       });
-    });
+
+      socket.on("job:completed", (event) => {
+        if (event.assignmentId !== assignmentId || redirectedRef.current) {
+          return;
+        }
+
+        redirectedRef.current = true;
+        setPaper(event.result);
+        updateJobStatus({
+          progress: 100,
+          message: "Question paper ready.",
+          status: "completed"
+        });
+        router.replace(`/assignments/${assignmentId}/paper`);
+      });
+
+      socket.on("job:failed", (event) => {
+        if (event.assignmentId !== assignmentId) {
+          return;
+        }
+
+        updateJobStatus({
+          status: "failed",
+          message: event.message,
+          progress: Math.max(progressRef.current, 20)
+        });
+      });
+    }
 
     return () => {
       active = false;
       window.clearInterval(interval);
-      socket?.emit("assignment:leave", assignmentId);
+      if (enableRealtime) {
+        socket?.emit("assignment:leave", assignmentId);
+      }
       socket?.disconnect();
     };
   }, [assignmentId, router, setPaper, updateJobStatus]);

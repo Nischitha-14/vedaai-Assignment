@@ -69,12 +69,12 @@ npm install
 
 ### 3. Configure environment files
 
-The repo already includes local defaults for development:
+Create your local environment files from the checked-in examples:
 
-- [`backend/.env`](/Users/nischithasrinivas/Desktop/vedaiproject/backend/.env)
-- [`frontend/.env.local`](/Users/nischithasrinivas/Desktop/vedaiproject/frontend/.env.local)
+- Copy [`backend/.env.example`](/Users/nischithasrinivas/Desktop/vedaiproject/backend/.env.example) to `backend/.env`
+- Copy [`frontend/.env.local.example`](/Users/nischithasrinivas/Desktop/vedaiproject/frontend/.env.local.example) to `frontend/.env.local`
 
-Set a real Claude API key in [`backend/.env`](/Users/nischithasrinivas/Desktop/vedaiproject/backend/.env):
+Set a real Claude API key in `backend/.env`:
 
 ```env
 CLAUDE_API_KEY=your_real_key
@@ -130,6 +130,84 @@ npm run build --workspace frontend
 npm run test --workspace frontend
 ```
 
+## Deployment
+
+### Backend on Vercel
+
+Deploy the `backend` folder as its own Vercel project.
+
+Files added for Vercel:
+
+- [`backend/vercel.json`](/Users/nischithasrinivas/Desktop/vedaiproject/backend/vercel.json)
+- [`backend/api/[[...route]].ts`](/Users/nischithasrinivas/Desktop/vedaiproject/backend/api/[[...route]].ts)
+
+Required Vercel environment variables:
+
+```env
+MONGODB_URI=your_mongodb_connection_string
+REDIS_URL=your_redis_connection_string
+CLAUDE_API_KEY=your_claude_api_key
+FRONTEND_URL=https://your-firebase-app-hosting-domain
+SCHOOL_NAME=VedaAI Public School
+BACKEND_RUNTIME_MODE=serverless
+```
+
+Important deployment note:
+
+- Vercel does not support running this app's Socket.io server as a long-lived websocket backend.
+- In deployed mode, VedaAI switches to status polling plus persisted progress updates in MongoDB.
+- Local development still keeps BullMQ plus Socket.io for the full real-time workflow.
+- The hosted deployment is configured for a 4MB upload limit so Vercel request limits do not reject teacher uploads.
+
+Suggested Vercel project settings:
+
+1. Root Directory: `backend`
+2. Install Command: `npm install`
+3. Build Command: leave default
+4. Output setting: leave default for Vercel Functions
+
+### Frontend on Firebase App Hosting
+
+Deploy the `frontend` folder with Firebase App Hosting.
+
+Files added for Firebase:
+
+- [`frontend/apphosting.yaml`](/Users/nischithasrinivas/Desktop/vedaiproject/frontend/apphosting.yaml)
+
+Recommended Firebase App Hosting environment variables:
+
+```env
+NEXT_PUBLIC_API_URL=https://your-backend-project.vercel.app
+NEXT_PUBLIC_WS_URL=
+NEXT_PUBLIC_ENABLE_WS=false
+NEXT_PUBLIC_MAX_UPLOAD_MB=4
+```
+
+Suggested Firebase App Hosting setup:
+
+1. Create or open a Firebase project
+2. Choose App Hosting
+3. Connect this GitHub repo
+4. Set the app root directory to `frontend`
+5. Add the environment variables above
+6. Deploy
+
+### Cross-platform support
+
+The deployed app is designed to work as a responsive web application across:
+
+- Windows browsers
+- macOS browsers
+- Android browsers
+- iPhone Safari and other iOS browsers
+
+Mobile-readiness included in this repo:
+
+- Responsive sidebar plus bottom navigation
+- Safe-area padding for mobile devices with notches
+- Web app manifest and mobile-friendly metadata
+- Polling-based progress tracking when websockets are unavailable in hosted environments
+
 ## API Documentation
 
 ### `GET /api/health`
@@ -139,7 +217,7 @@ Returns backend readiness.
 Response:
 
 ```json
-{ "status": "ok" }
+{ "status": "ok", "runtimeMode": "server" }
 ```
 
 ### `POST /api/assignments`
@@ -187,6 +265,8 @@ Queues a fresh generation job for an existing assignment.
 
 ## WebSocket Events
 
+Local development uses Socket.io. Hosted deployments use polling as the primary progress transport.
+
 Client emits:
 
 - `assignment:join`
@@ -214,6 +294,15 @@ Server emits:
 
 The root `npm run dev` script starts MongoDB and Redis automatically through Docker Compose so the app can be launched from one command.
 
+### Dual runtime backend strategy
+
+The backend now supports two runtime modes:
+
+- `server`: local Express plus Socket.io plus BullMQ worker
+- `serverless`: Vercel Functions plus background generation through `waitUntil()`
+
+This keeps local development feature-complete while making the hosted backend compatible with Vercel's serverless model.
+
 ### Claude-first, resilient generation
 
 The worker calls Claude with a strict JSON-only prompt and validates the output before saving it. If Claude is unavailable or returns invalid JSON, VedaAI falls back to a local structured generator so the development flow remains end to end and the UI never renders raw model output.
@@ -224,7 +313,7 @@ The generated paper is stored directly on the assignment document to keep reads 
 
 ### Redis for both queueing and caching
 
-BullMQ uses Redis for background jobs while the paper endpoint uses Redis caching to reduce repeated database reads and PDF preparation overhead.
+BullMQ uses Redis for background jobs in local mode while the paper endpoint uses Redis caching to reduce repeated database reads and PDF preparation overhead. In Vercel mode, Redis remains available for caching while question generation is scheduled in the serverless background flow.
 
 ### Server-side PDF rendering
 
@@ -257,3 +346,4 @@ The following checks were completed locally:
 - On the first `npm run dev`, Docker may spend time pulling the MongoDB image.
 - With a real Claude API key configured, generation uses Claude directly.
 - Without a Claude key, development still completes end to end using the resilient local generator path.
+- For deployment, set `BACKEND_RUNTIME_MODE=serverless` on Vercel and `NEXT_PUBLIC_ENABLE_WS=false` on Firebase App Hosting.

@@ -7,6 +7,12 @@ const uploadDirectory = path.resolve(process.cwd(), "uploads");
 
 const sanitizeText = (value: string) => value.replace(/\s+/g, " ").trim();
 
+type UploadedFilePayload = {
+  fileUrl?: string;
+  filePath?: string;
+  sourceText: string;
+};
+
 export const ensureUploadDirectory = async () => {
   await fs.mkdir(uploadDirectory, { recursive: true });
 };
@@ -20,7 +26,17 @@ const extractSourceText = async (file: Express.Multer.File) => {
   return sanitizeText(file.buffer.toString("utf-8"));
 };
 
-export const persistUploadedFile = async (file: Express.Multer.File) => {
+export const persistUploadedFile = async (
+  file: Express.Multer.File
+): Promise<UploadedFilePayload> => {
+  return {
+    sourceText: (await extractSourceText(file)).slice(0, 12000)
+  };
+};
+
+export const persistUploadedFileToDisk = async (
+  file: Express.Multer.File
+): Promise<UploadedFilePayload> => {
   await ensureUploadDirectory();
 
   const extension =

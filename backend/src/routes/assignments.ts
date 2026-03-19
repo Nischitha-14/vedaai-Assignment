@@ -2,37 +2,47 @@ import { Router } from "express";
 import multer from "multer";
 import { asyncHandler } from "../lib/asyncHandler";
 import { createAssignmentsController } from "../controllers/assignmentsController";
-import type { Queue } from "bullmq";
 import type IORedis from "ioredis";
-
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 5 * 1024 * 1024
-  },
-  fileFilter: (_req, file, callback) => {
-    const allowedMimeTypes = ["application/pdf", "text/plain"];
-    const allowedExtension = [".pdf", ".txt"].some((extension) =>
-      file.originalname.toLowerCase().endsWith(extension)
-    );
-
-    if (allowedMimeTypes.includes(file.mimetype) || allowedExtension) {
-      return callback(null, true);
-    }
-
-    return callback(new Error("Only PDF and TXT files are allowed."));
-  }
-});
+import type { Env } from "../config/env";
+import type { GenerationDispatcher } from "../types/generation";
 
 export const createAssignmentsRouter = ({
-  queue,
+  env,
+  generationDispatcher,
   cacheRedis
 }: {
-  queue: Queue;
+  env: Env;
+  generationDispatcher: GenerationDispatcher;
   cacheRedis: IORedis;
 }) => {
+  const maxUploadSizeBytes =
+    env.BACKEND_RUNTIME_MODE === "serverless" ? 4 * 1024 * 1024 : 5 * 1024 * 1024;
+
+  const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+      fileSize: maxUploadSizeBytes
+    },
+    fileFilter: (_req, file, callback) => {
+      const allowedMimeTypes = ["application/pdf", "text/plain"];
+      const allowedExtension = [".pdf", ".txt"].some((extension) =>
+        file.originalname.toLowerCase().endsWith(extension)
+      );
+
+      if (allowedMimeTypes.includes(file.mimetype) || allowedExtension) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Only PDF and TXT files are allowed."));
+    }
+  });
+
   const router = Router();
-  const controller = createAssignmentsController({ queue, cacheRedis });
+  const controller = createAssignmentsController({
+    env,
+    generationDispatcher,
+    cacheRedis
+  });
 
   router.post("/", upload.single("file"), asyncHandler(controller.createAssignment));
   router.get("/", asyncHandler(controller.listAssignments));

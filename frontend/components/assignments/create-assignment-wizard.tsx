@@ -19,12 +19,13 @@ import {
 import { createAssignment } from "@/lib/api";
 import {
   buildQuestionTypes,
-  createAssignmentFormSchema,
-  getDefaultAssignmentFormValues,
-  getDifficultyLabel,
-  tomorrowDate,
-  type CreateAssignmentFormValues
-} from "@/lib/validation";
+    createAssignmentFormSchema,
+    getDefaultAssignmentFormValues,
+    getDifficultyLabel,
+    maxUploadSizeMb,
+    tomorrowDate,
+    type CreateAssignmentFormValues
+  } from "@/lib/validation";
 import { useAssignmentStore } from "@/stores/assignment-store";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -400,7 +401,9 @@ export const CreateAssignmentWizard = () => {
                     <span className="mt-3 text-sm font-semibold text-slate-900">
                       Upload a PDF or TXT file
                     </span>
-                    <span className="mt-1 text-xs text-slate-500">Maximum file size: 5MB</span>
+                    <span className="mt-1 text-xs text-slate-500">
+                      Maximum file size: {maxUploadSizeMb}MB
+                    </span>
                     <input
                       type="file"
                       accept=".pdf,.txt,application/pdf,text/plain"

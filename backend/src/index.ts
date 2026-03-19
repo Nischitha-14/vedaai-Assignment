@@ -25,9 +25,16 @@ const bootstrap = async () => {
   ]);
 
   const queue = createQuestionGenerationQueue(queueConnection);
+  const generationDispatcher = {
+    enqueueGeneration: async (assignmentId: string) => {
+      await queue.add("generate-paper", {
+        assignmentId
+      });
+    }
+  };
   const app = createApp({
     env,
-    queue,
+    generationDispatcher,
     cacheRedis
   });
   const httpServer = createServer(app);

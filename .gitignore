@@ -13,6 +13,9 @@ coverage/
 
 *.log
 *.tsbuildinfo
+.vercel/
+.firebase/
+firebase-debug.log
 
 .DS_Store
 

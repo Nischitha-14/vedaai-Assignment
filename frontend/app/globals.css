@@ -65,6 +65,7 @@ body {
     linear-gradient(180deg, #17120e 0%, #120f0b 48%, #17120e 100%);
   color: var(--ink);
   position: relative;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 body::before,
