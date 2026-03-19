@@ -1,0 +1,24 @@
+{
+  "name": "vedaai",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "npm@11.11.0",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "npm run infra:up && concurrently -n BACKEND,FRONTEND -c yellow,cyan \"npm run dev --workspace backend\" \"npm run dev --workspace frontend\"",
+    "infra:up": "docker compose up -d",
+    "infra:down": "docker compose down",
+    "build": "npm run build --workspace backend && npm run build --workspace frontend",
+    "test": "npm run test --workspace backend && npm run test --workspace frontend",
+    "typecheck": "npm run typecheck --workspace backend && npm run typecheck --workspace frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
