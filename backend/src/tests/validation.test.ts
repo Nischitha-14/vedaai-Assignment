@@ -1,6 +1,11 @@
-import { addDays } from "date-fns";
 import { describe, expect, it } from "vitest";
 import { parseCreateAssignmentPayload } from "../validation/assignment";
+
+const addDays = (date: Date, days: number) => {
+  const nextDate = new Date(date);
+  nextDate.setDate(nextDate.getDate() + days);
+  return nextDate;
+};
 
 describe("parseCreateAssignmentPayload", () => {
   it("parses multipart-style form data and normalizes question types", () => {
