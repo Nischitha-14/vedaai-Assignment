@@ -6,10 +6,10 @@ import { parseCreateAssignmentPayload } from "../validation/assignment";
 import { getAssignmentPaperCacheKey } from "../config/redis";
 import { persistUploadedFile, persistUploadedFileToDisk } from "../services/fileService";
 import { generateQuestionPaperPdf } from "../services/pdfService";
-import type IORedis from "ioredis";
 import type { QuestionPaper } from "../types/assignment";
 import type { Env } from "../config/env";
 import type { GenerationDispatcher } from "../types/generation";
+import type { CacheStore } from "../types/cache";
 
 const getAssignmentOrThrow = async (assignmentId: string) => {
   const assignment = await AssignmentModel.findById(assignmentId);
@@ -33,7 +33,7 @@ export const createAssignmentsController = ({
 }: {
   env: Env;
   generationDispatcher: GenerationDispatcher;
-  cacheRedis: IORedis;
+  cacheRedis: CacheStore;
 }) => ({
   createAssignment: async (req: Request, res: Response) => {
     try {
@@ -101,7 +101,7 @@ export const createAssignmentsController = ({
 
     const paper = assignment.toJSON().result as QuestionPaper;
 
-    await cacheRedis.set(cacheKey, JSON.stringify(paper), "EX", 60 * 60);
+    await cacheRedis.set(cacheKey, JSON.stringify(paper), 60 * 60);
 
     return res.json(paper);
   },

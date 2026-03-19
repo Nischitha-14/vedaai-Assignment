@@ -4,8 +4,8 @@ import path from "path";
 import { ZodError } from "zod";
 import { createAssignmentsRouter } from "./routes/assignments";
 import type { Env } from "./config/env";
-import type IORedis from "ioredis";
 import type { GenerationDispatcher } from "./types/generation";
+import type { CacheStore } from "./types/cache";
 
 export const createApp = ({
   env,
@@ -14,7 +14,7 @@ export const createApp = ({
 }: {
   env: Env;
   generationDispatcher: GenerationDispatcher;
-  cacheRedis: IORedis;
+  cacheRedis: CacheStore;
 }) => {
   const app = express();
 

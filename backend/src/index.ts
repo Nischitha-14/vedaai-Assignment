@@ -4,7 +4,11 @@ import { Server } from "socket.io";
 import { createApp } from "./app";
 import { getEnv } from "./config/env";
 import { connectToDatabase, disconnectFromDatabase } from "./config/database";
-import { createRedisConnection, getBullMqConnectionOptions } from "./config/redis";
+import {
+  createCacheStore,
+  createRedisConnection,
+  getBullMqConnectionOptions
+} from "./config/redis";
 import { createQuestionGenerationQueue } from "./queues/questionGenerationQueue";
 import { createGenerationWorker } from "./workers/generationWorker";
 import { ensureUploadDirectory } from "./services/fileService";
@@ -15,9 +19,9 @@ const bootstrap = async () => {
 
   await connectToDatabase(env.MONGODB_URI);
 
-  const cacheRedis = createRedisConnection(env.REDIS_URL);
-  const queueConnection = getBullMqConnectionOptions(env.REDIS_URL);
-  const workerConnection = getBullMqConnectionOptions(env.REDIS_URL);
+  const cacheRedis = createCacheStore(env);
+  const queueConnection = getBullMqConnectionOptions(env.REDIS_URL!);
+  const workerConnection = getBullMqConnectionOptions(env.REDIS_URL!);
 
   await Promise.all([
     cacheRedis.ping(),

@@ -2,7 +2,7 @@ import "dotenv/config";
 import { createApp } from "../app";
 import { connectToDatabase } from "../config/database";
 import { getEnv } from "../config/env";
-import { createRedisConnection } from "../config/redis";
+import { createCacheStore } from "../config/redis";
 import { createServerlessGenerationDispatcher } from "../services/createServerlessGenerationDispatcher";
 
 type ServerlessResources = {
@@ -19,7 +19,7 @@ const bootstrapServerlessApp = async (): Promise<ServerlessResources> => {
   const env = getEnv();
   await connectToDatabase(env.MONGODB_URI);
 
-  const cacheRedis = createRedisConnection(env.REDIS_URL);
+  const cacheRedis = createCacheStore(env);
   await cacheRedis.ping();
 
   const generationDispatcher = createServerlessGenerationDispatcher({

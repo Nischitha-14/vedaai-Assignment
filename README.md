@@ -146,11 +146,19 @@ Required Vercel environment variables:
 ```env
 MONGODB_URI=your_mongodb_connection_string
 REDIS_URL=your_redis_connection_string
+# or use Upstash REST in serverless mode instead of REDIS_URL:
+UPSTASH_REDIS_REST_URL=https://your-database.upstash.io
+UPSTASH_REDIS_REST_TOKEN=your_upstash_rest_token
 CLAUDE_API_KEY=your_claude_api_key
-FRONTEND_URL=https://your-firebase-app-hosting-domain
+FRONTEND_URL=https://your-frontend-domain
 SCHOOL_NAME=VedaAI Public School
 BACKEND_RUNTIME_MODE=serverless
 ```
+
+Redis note:
+
+- Local `server` mode still requires `REDIS_URL` because BullMQ workers run over a standard Redis connection.
+- Deployed `serverless` mode can use either `REDIS_URL` or the `UPSTASH_REDIS_REST_URL` plus `UPSTASH_REDIS_REST_TOKEN` pair.
 
 Important deployment note:
 

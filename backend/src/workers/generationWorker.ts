@@ -1,10 +1,10 @@
 import { Worker, type ConnectionOptions } from "bullmq";
-import type IORedis from "ioredis";
 import type { Server } from "socket.io";
 import { getAssignmentRoomName } from "../lib/socket";
 import { QUESTION_GENERATION_QUEUE } from "../queues/questionGenerationQueue";
 import type { Env } from "../config/env";
 import { processAssignmentGeneration } from "../services/processAssignmentGeneration";
+import type { CacheStore } from "../types/cache";
 
 export const createGenerationWorker = ({
   connection,
@@ -13,7 +13,7 @@ export const createGenerationWorker = ({
   env
 }: {
   connection: ConnectionOptions;
-  cacheRedis: IORedis;
+  cacheRedis: CacheStore;
   io: Server;
   env: Env;
 }) =>

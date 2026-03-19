@@ -2,9 +2,9 @@ import { Router } from "express";
 import multer from "multer";
 import { asyncHandler } from "../lib/asyncHandler";
 import { createAssignmentsController } from "../controllers/assignmentsController";
-import type IORedis from "ioredis";
 import type { Env } from "../config/env";
 import type { GenerationDispatcher } from "../types/generation";
+import type { CacheStore } from "../types/cache";
 
 export const createAssignmentsRouter = ({
   env,
@@ -13,7 +13,7 @@ export const createAssignmentsRouter = ({
 }: {
   env: Env;
   generationDispatcher: GenerationDispatcher;
-  cacheRedis: IORedis;
+  cacheRedis: CacheStore;
 }) => {
   const maxUploadSizeBytes =
     env.BACKEND_RUNTIME_MODE === "serverless" ? 4 * 1024 * 1024 : 5 * 1024 * 1024;

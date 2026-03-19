@@ -1,9 +1,9 @@
-import type IORedis from "ioredis";
 import { AssignmentModel } from "../models/Assignment";
 import { getAssignmentPaperCacheKey } from "../config/redis";
 import { generateQuestionPaperForAssignment } from "./questionGenerationService";
 import type { Env } from "../config/env";
 import type { QuestionPaper } from "../types/assignment";
+import type { CacheStore } from "../types/cache";
 
 type GenerationHooks = {
   onProgress?: (payload: {
@@ -31,7 +31,7 @@ export const processAssignmentGeneration = async ({
   hooks
 }: {
   assignmentId: string;
-  cacheRedis: IORedis;
+  cacheRedis: CacheStore;
   env: Env;
   hooks?: GenerationHooks;
 }) => {
